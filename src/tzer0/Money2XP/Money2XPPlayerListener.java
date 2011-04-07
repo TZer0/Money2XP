@@ -78,6 +78,7 @@ public class Money2XPPlayerListener extends PlayerListener  {
             }
         }
         if (help) {
+            player.sendMessage(ChatColor.GREEN + "Money2XP by TZer0 (TZer0.jan@gmail.com)");
             player.sendMessage(ChatColor.YELLOW + "Commands:");
             player.sendMessage(ChatColor.YELLOW + "/m2x list - list skills and prices");
             player.sendMessage(ChatColor.YELLOW + "/m2x [skillname] [amount]");

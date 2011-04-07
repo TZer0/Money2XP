@@ -79,6 +79,7 @@ public class Money2XP extends JavaPlugin {
             }
         }
         if (help) {
+            sender.sendMessage(ChatColor.GREEN + "Money2XP by TZer0 (TZer0.jan@gmail.com)");
             sender.sendMessage(ChatColor.YELLOW + "Available commands:");
             sender.sendMessage(ChatColor.YELLOW + "/m2xset [skillname] [price_per_xp] - sets xp-cost for a skill");
             sender.sendMessage(ChatColor.YELLOW + "/m2x list - list skills and prices");
