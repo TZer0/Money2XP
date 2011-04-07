@@ -150,7 +150,7 @@ public class Money2XP extends JavaPlugin {
         sender.sendMessage(ChatColor.WHITE + "Name - Cost");
         for (String name : skillnames) {
             value = getConfiguration().getInt(name, def);
-            if (value <= 0) {
+            if (value > 0) {
                 sender.sendMessage(ChatColor.GREEN + String.format("%s - %d", name, value));
             } else {
                 sender.sendMessage(ChatColor.RED + String.format("%s is not available", name));
