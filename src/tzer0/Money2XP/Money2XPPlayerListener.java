@@ -106,7 +106,7 @@ public class Money2XPPlayerListener extends PlayerListener  {
             int xp = Integer.parseInt(xpstring);
             int xpcost = conf.getInt(skill.toLowerCase(), conf.getInt("default", 100));
             
-            if (xpcost == -1) {
+            if (xpcost <= 0) {
                 player.sendMessage(String.format(ChatColor.RED + "Training %s using money has been disabled.", skill));
                 return;
             } else if (Integer.MAX_VALUE/xpcost < xp || xp <= 0) {
