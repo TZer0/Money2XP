@@ -101,7 +101,6 @@ public class Money2XPPlayerListener extends PlayerListener  {
      * @param test If this is a test or not.
      */
     public void xpMod(String skill, String xpstring, Player player, boolean test) {
-        Plugin iCTest = parent.getServer().getPluginManager().getPlugin("iconomy");
         Plugin BOS = parent.getServer().getPluginManager().getPlugin("BOSEconomy");
         skill = skill.toLowerCase();
         if (parent.checkInt(xpstring)) {
@@ -121,7 +120,7 @@ public class Money2XPPlayerListener extends PlayerListener  {
                 return;
             }
             int bal = 0;
-            if (iCTest != null) {
+            if (parent.getServer().getPluginManager().isPluginEnabled("iConomy")) {
                 Account acc = iConomy.getBank().getAccount(player.getName());
                 bal = (int)acc.getBalance();
             } else if (BOS != null) {
@@ -142,7 +141,7 @@ public class Money2XPPlayerListener extends PlayerListener  {
                 player.sendMessage(ChatColor.YELLOW+String.format("leaving you with %d money.",
                         ((int) bal)-xp*xpcost));
             } else {
-                if (iCTest != null) {
+                if (parent.getServer().getPluginManager().isPluginEnabled("iConomy")) {
                     iConomy.getBank().getAccount(player.getName()).subtract(xp*xpcost);
                 } else {
                     ((BOSEconomy) BOS).addPlayerMoney(player.getName(), -xp*xpcost, true);

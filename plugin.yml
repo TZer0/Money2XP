@@ -1,6 +1,6 @@
 name: Money2XP
 main: tzer0.Money2XP.Money2XP
-version: 0.1
+version: 0.1.4
 commands:
     m2xset:
         description: Administrates money/xp-settings.
