@@ -5,11 +5,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerListener;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.config.Configuration;
 
 import com.nijiko.coelho.iConomy.iConomy;
 import com.nijiko.coelho.iConomy.system.Account;
 import com.nijiko.permissions.PermissionHandler;
+
+import cosine.boseconomy.BOSEconomy;
 
 // TODO: Auto-generated Javadoc
 /**
@@ -98,6 +101,8 @@ public class Money2XPPlayerListener extends PlayerListener  {
      * @param test If this is a test or not.
      */
     public void xpMod(String skill, String xpstring, Player player, boolean test) {
+        Plugin iCTest = parent.getServer().getPluginManager().getPlugin("iconomy");
+        Plugin BOS = parent.getServer().getPluginManager().getPlugin("BOSEconomy");
         skill = skill.toLowerCase();
         if (parent.checkInt(xpstring)) {
             if (!parent.skillnames.contains(skill)) {
@@ -115,8 +120,17 @@ public class Money2XPPlayerListener extends PlayerListener  {
                 player.sendMessage(ChatColor.RED+String.format("Nice try."));
                 return;
             }
-            Account acc = iConomy.getBank().getAccount(player.getName());
-            int bal = (int)acc.getBalance();
+            int bal = 0;
+            if (iCTest != null) {
+                Account acc = iConomy.getBank().getAccount(player.getName());
+                bal = (int)acc.getBalance();
+            } else if (BOS != null) {
+                bal = ((BOSEconomy) BOS).getPlayerMoney(player.getName());
+            } else {
+                player.sendMessage(ChatColor.RED + "No economy system disabled, cancelled.");
+                return;
+            }
+            
             if (!test && bal < xp*xpcost) {
                 player.sendMessage(ChatColor.RED+String.format("You cannot afford %d %s xp (@%d) since ", 
                         xp, skill, xpcost));
@@ -126,13 +140,18 @@ public class Money2XPPlayerListener extends PlayerListener  {
                 player.sendMessage(ChatColor.YELLOW+String.format("%d %s-xp (@%d) would cost you %d,", 
                         xp, skill, xpcost, xp*xpcost));
                 player.sendMessage(ChatColor.YELLOW+String.format("leaving you with %d money.",
-                        ((int) acc.getBalance())-xp*xpcost));
+                        ((int) bal)-xp*xpcost));
             } else {
-                acc.subtract(xp*xpcost);
+                if (iCTest != null) {
+                    iConomy.getBank().getAccount(player.getName()).subtract(xp*xpcost);
+                } else {
+                    ((BOSEconomy) BOS).addPlayerMoney(player.getName(), -xp*xpcost, true);
+                }
+                bal -= xp*xpcost;
                 player.sendMessage(ChatColor.GREEN+String.format("You received %d %s-xp(@%d) for %d money!", 
                         xp, skill, xpcost, xp*xpcost));
                 player.sendMessage(ChatColor.GREEN+String.format("You have %d money left", 
-                        (int)acc.getBalance()));
+                        (int) bal));
                 parent.mcmmo.addXp(player, skill, xp);
             }
         } else {
