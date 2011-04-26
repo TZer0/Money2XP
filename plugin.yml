@@ -3,13 +3,19 @@ main: tzer0.Money2XP.Money2XP
 version: 0.2
 author: TZer0
 commands:
-    m2xset:
-        description: Administrates money/xp-settings.
-        usage: /m2xset
     m2x:
         description: Allows players to purchase xp for iConomy-money
         usage: /m2x
     m2xtrain:
-        description: Toggles trainer-setups
+        description: Configures training-zones
         usage: /m2xtrain
+    m2xt:
+        description: Configures training-zones
+        usage: /m2xt
+    m2xset:
+        description: Administrates money/xp-settings.
+        usage: /m2xset
+    m2xs:
+        description: Administrates money/xp-settings.
+        usage: /m2xs
         

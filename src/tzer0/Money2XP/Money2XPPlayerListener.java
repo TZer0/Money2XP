@@ -6,7 +6,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerListener;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.util.config.Configuration;
 
@@ -23,10 +22,10 @@ public class Money2XPPlayerListener extends PlayerListener  {
     Configuration conf;
     Money2XP plugin;
     public PermissionHandler permissions;
-    HashMap<String, TrainingArea> activity;
+    HashMap<Player, TrainingArea> activity;
 
     public Money2XPPlayerListener () {        
-        activity = new HashMap<String, TrainingArea>();
+        activity = new HashMap<Player, TrainingArea>();
     }
     /**
      * Sets the pointers so that they can be referenced later in the code
@@ -39,38 +38,36 @@ public class Money2XPPlayerListener extends PlayerListener  {
         conf = config;
         this.plugin = plugin;
         this.permissions = permissions;
-        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, new PositionChecker(), 0L, 100L);
+        plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, new PositionChecker(), 0L, 30L);
     }
     public void onPlayerJoin(PlayerJoinEvent event) {
-        activity.put(event.getPlayer().getName(), null);
+        activity.remove(event.getPlayer());
     }
     public void onPlayerQuit(PlayerQuitEvent event) {
         activity.remove(event.getPlayer().getName());
     }
-    /** 
-     * Checks if the command is valid and wether the player attempting to do the command has permissions to do so
-     * 
-     * @see org.bukkit.event.player.PlayerListener#onPlayerCommandPreprocess(org.bukkit.event.player.PlayerCommandPreprocessEvent)
+    /**
+     * Checks where players are located and updates their status accordingly (and what skills they may train) 
+     *
+     *
      */
-    public void onPlayerMove(PlayerMoveEvent event) {
-
-    }
-
     public class PositionChecker implements Runnable {
         public void run() {
+            if (!plugin.trainingzones) {
+                return;
+            }
             for (Player player : plugin.getServer().getOnlinePlayers()) {
-                if (activity.containsKey(player.getName())) {
-                    activity.put(player.getName(), null);
+                boolean inarea = false;
+                if (!activity.containsKey(player)) {
+                    activity.put(player, null);
                 }
-                TrainingArea area = activity.get(player.getName());
-                activity.put(player.getName(), null);
+                TrainingArea area = activity.get(player);
                 for (TrainingArea test : plugin.areas) {
-                    player.sendMessage("testing!");
-                    //player.sendMessage(""+test);
                     if (test.isInArea(player.getLocation())) {
+                        inarea = true;
                         if (!(area == test)) {
                             if (test.skills.size() != 0) {
-                                player.sendMessage(ChatColor.GREEN + "You feel the presense of a training ground.");
+                                player.sendMessage(ChatColor.GREEN + "You feel the presence of a training ground.");
                                 player.sendMessage(ChatColor.GREEN + "You may train the following skills here:");
                                 for (Integer i : test.skills) {
                                     player.sendMessage(ChatColor.GREEN + plugin.names[i]);
@@ -78,10 +75,14 @@ public class Money2XPPlayerListener extends PlayerListener  {
                             } else {
                                 player.sendMessage(ChatColor.YELLOW + "You feel the presense of an unused training ground");
                             }
-
-                            activity.put(player.getName(), test);
+                            activity.put(player, test);
+                            break;
                         }
                     }
+                }
+                if (area != null && !inarea) {
+                    activity.put(player, null);
+                    player.sendMessage(ChatColor.YELLOW + "You have left a training ground.");
                 }
             }
         }
