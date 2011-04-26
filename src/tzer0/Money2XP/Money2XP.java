@@ -91,6 +91,9 @@ public class Money2XP extends JavaPlugin {
         areas = new LinkedHashSet<TrainingArea>();
         int xf,yf,zf,xt,yt,zt;
         Map<String, ConfigurationNode> nodes = conf.getNodes("areas.");
+        if (nodes == null) {
+            return;
+        }
         for (String area : nodes.keySet()) {
             xf = conf.getInt("areas."+area+".xf", 0);
             yf = conf.getInt("areas."+area+".yf", 0);
@@ -340,7 +343,7 @@ public class Money2XP extends JavaPlugin {
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (r)e(s)ize - resize selected area");
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (ad)d [skillname] - adds a skill to sel. area");
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (d)el [skillname] - removes a skill from sel. area");
-                player.sendMessage(ChatColor.YELLOW + "/m2xtrain (d)elete(a)rea name - deletes an area");
+                player.sendMessage(ChatColor.YELLOW + "/m2xtrain (d)elete(a)rea [name] - deletes an area");
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (r)eload - reload config, reports errors");
                 player.sendMessage(ChatColor.YELLOW + "You may use /m2xt and /m2xs too.");
             }
