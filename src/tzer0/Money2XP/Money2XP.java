@@ -38,7 +38,7 @@ import cosine.boseconomy.BOSEconomy;
 public class Money2XP extends JavaPlugin {
     private final Money2XPPlayerListener listener = new Money2XPPlayerListener();
 
-    String []names = {"acrobatics", "archery", "axes", "excavation", "herbalism", "mining", "repair", "swords", "unarmed", "woodcutting"};
+    String []names = {"Acrobatics", "Archery", "Axes", "Excavation", "Herbalism", "Mining", "Repair", "Swords", "Taming", "Unarmed", "Woodcutting"};
     PluginDescriptionFile pdfFile;
     public PermissionHandler permissions;
     public LinkedHashSet<String> skillnames = new LinkedHashSet<String>();
@@ -68,7 +68,7 @@ public class Money2XP extends JavaPlugin {
         pdfFile = this.getDescription();
         if (skillnames.size() == 0) {
             for (String name : names) {
-                skillnames.add(name);
+                skillnames.add(name.toLowerCase());
             }
         }
         setupPermissions();
