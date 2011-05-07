@@ -3,7 +3,9 @@ package tzer0.Money2XP;
 import java.util.HashMap;
 
 import org.bukkit.ChatColor;
+import org.bukkit.block.Chest;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -39,6 +41,11 @@ public class Money2XPPlayerListener extends PlayerListener  {
         this.plugin = plugin;
         this.permissions = permissions;
         plugin.getServer().getScheduler().scheduleSyncRepeatingTask(plugin, new PositionChecker(), 0L, 30L);
+    }
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getClickedBlock() instanceof Chest) {
+            event.getPlayer().sendMessage("wee");
+        }
     }
     public void onPlayerJoin(PlayerJoinEvent event) {
         activity.remove(event.getPlayer());
