@@ -15,6 +15,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
+import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.event.server.ServerListener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -23,8 +26,8 @@ import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
 
 import com.gmail.nossr50.mcMMO;
-import com.nijiko.coelho.iConomy.iConomy;
-import com.nijiko.coelho.iConomy.system.Account;
+import com.iConomy.system.Holdings;
+import com.iConomy.iConomy;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 
@@ -37,7 +40,7 @@ import cosine.boseconomy.BOSEconomy;
  */
 public class Money2XP extends JavaPlugin {
     private final Money2XPPlayerListener listener = new Money2XPPlayerListener();
-
+    private final Server serverListener = new Server(this);
     String []names = {"Acrobatics", "Archery", "Axes", "Excavation", "Herbalism", "Mining", "Repair", "Swords", "Taming", "Unarmed", "Woodcutting"};
     PluginDescriptionFile pdfFile;
     public PermissionHandler permissions;
@@ -46,6 +49,7 @@ public class Money2XP extends JavaPlugin {
     HashMap<Player, AreaSelect> as;
     HashMap<CommandSender, TrainingArea> selected;
     Configuration conf;
+    public iConomy iConomy = null;
     public mcMMO mcmmo;
     public boolean trainingzones;
     @SuppressWarnings("unused")
@@ -78,7 +82,8 @@ public class Money2XP extends JavaPlugin {
         PluginManager tmp = getServer().getPluginManager();
         tmp.registerEvent(Event.Type.PLAYER_JOIN, listener, Priority.Normal, this);
         tmp.registerEvent(Event.Type.PLAYER_QUIT, listener, Priority.Normal, this);
-
+        tmp.registerEvent(Event.Type.PLUGIN_ENABLE, serverListener, Priority.Monitor, this);
+        tmp.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Priority.Monitor, this);
         System.out.println(pdfFile.getName() + " version "
                 + pdfFile.getVersion() + " is enabled!");
         mcmmo = (mcMMO) tmp.getPlugin("mcMMO");
@@ -400,16 +405,16 @@ public class Money2XP extends JavaPlugin {
                 return;
             }
             int bal = 0;
-            if (getServer().getPluginManager().isPluginEnabled("iConomy")) {
-                Account acc = iConomy.getBank().getAccount(player.getName());
-                bal = (int)acc.getBalance();
+            if (iConomy != null) {
+                Holdings acc = iConomy.getAccount(player.getName()).getHoldings();
+                bal = (int)acc.balance();
             } else if (BOS != null) {
                 bal = ((BOSEconomy) BOS).getPlayerMoney(player.getName());
             } else {
                 player.sendMessage(ChatColor.RED + "No economy system disabled, cancelled.");
                 return;
             }
-
+            
             if (!test && bal < xp*xpcost) {
                 player.sendMessage(ChatColor.RED+String.format("You cannot afford %d %s xp (@%d) since ", 
                         xp, skill, xpcost));
@@ -421,8 +426,8 @@ public class Money2XP extends JavaPlugin {
                 player.sendMessage(ChatColor.YELLOW+String.format("leaving you with %d money.",
                         ((int) bal)-xp*xpcost));
             } else {
-                if (getServer().getPluginManager().isPluginEnabled("iConomy")) {
-                    iConomy.getBank().getAccount(player.getName()).subtract(xp*xpcost);
+                if (iConomy != null) {
+                   iConomy.getAccount(player.getName()).getHoldings().subtract(xp*xpcost);
                 } else {
                     ((BOSEconomy) BOS).addPlayerMoney(player.getName(), -xp*xpcost, true);
                 }
@@ -635,6 +640,34 @@ public class Money2XP extends JavaPlugin {
                 return true;
             } else {
                 return false;
+            }
+        }
+    }
+    
+    class Server extends ServerListener {
+        private Money2XP plugin;
+
+        public Server(Money2XP plugin) {
+            this.plugin = plugin;
+        }
+        public void onPluginDisable(PluginDisableEvent event) {
+            if (plugin.iConomy != null) {
+                if (event.getPlugin().getDescription().getName().equals("iConomy")) {
+                    plugin.iConomy = null;
+                    System.out.println("[Money2XP] un-hooked from iConomy.");
+                }
+            }
+        }
+        public void onPluginEnable(PluginEnableEvent event) {
+            if (plugin.iConomy == null) {
+                Plugin iConomy = plugin.getServer().getPluginManager().getPlugin("iConomy");
+
+                if (iConomy != null) {
+                    if (iConomy.isEnabled()) {
+                        plugin.iConomy = (com.iConomy.iConomy)iConomy;
+                        System.out.println("[Money2XP] hooked into iConomy.");
+                    }
+                }
             }
         }
     }
