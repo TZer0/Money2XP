@@ -1,6 +1,6 @@
 name: Money2XP
 main: tzer0.Money2XP.Money2XP
-version: 0.2.3
+version: 1.0
 author: TZer0
 commands:
     m2x:

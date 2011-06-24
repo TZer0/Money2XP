@@ -18,6 +18,7 @@ import org.bukkit.event.Event.Priority;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.ServerListener;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -25,6 +26,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
 
+import com.earth2me.essentials.Essentials;
 import com.gmail.nossr50.mcMMO;
 import com.iConomy.system.Holdings;
 import com.iConomy.iConomy;
@@ -127,208 +129,213 @@ public class Money2XP extends JavaPlugin {
     public boolean onCommand(CommandSender sender, Command cmd,
             String commandLabel, String[] args) {
         Player player = null;
+        boolean isPlayer = false;
         if (sender instanceof Player) {
             player = (Player) sender;
+            if (!(permissions == null || (permissions != null && permissions.has(player, "money2xp.user")))) {
+                player.sendMessage(ChatColor.RED + "You do not have access to this command.");
+                return true;
+            }
+            isPlayer = true;
         }
         int l = args.length;
         boolean help = false;
-        if (player != null) {
-            if (commandLabel.equalsIgnoreCase("m2x")) {
-                // user-accessible commands
-                if (!(permissions == null || (permissions != null && permissions.has(player, "money2xp.user")))) {
-                    player.sendMessage(ChatColor.RED + "You do not have access to this command.");
+        if (commandLabel.equalsIgnoreCase("m2x")) {
+            // user-accessible commands
+
+            if (l >= 1 && (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("l"))) {
+                // lists available skills
+                showSkills(sender);
+            } else if (l == 3 && (args[0].equalsIgnoreCase("check") || args[0].equalsIgnoreCase("c"))) {
+                // checks if the skill exists and whether the player has enough money to purchase the required
+                // amount of xp.
+                if (!abortIfNotPlayer(sender, isPlayer)) {
                     return true;
                 }
-                if (l >= 1 && (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("l"))) {
-                    // lists available skills
-                    showSkills((CommandSender)player);
-                } else if (l == 3 && (args[0].equalsIgnoreCase("check") || args[0].equalsIgnoreCase("c"))) {
-                    // checks if the skill exists and whether the player has enough money to purchase the required
-                    // amount of xp.
-                    xpMod(args[1], args[2], player, true, false);
-                } else if (l == 2) {
-                    xpMod(args[0], args[1], player, false, false);
-                } else if (l == 3) {
-                    xpMod(args[0], args[1], player, false, args[2].equalsIgnoreCase("o"));
-                } else {
+                xpMod(args[1], args[2], player, true, false);
+            } else if (l == 2) {
+                xpMod(args[0], args[1], player, false, false);
+            } else if (l == 3) {
+                xpMod(args[0], args[1], player, false, args[2].equalsIgnoreCase("o"));
+            } else {
+                help = true;
+            }
+        } else if (commandLabel.equalsIgnoreCase("m2xset") || commandLabel.equalsIgnoreCase("m2xs")) {
+            if (!((permissions == null && player.isOp()) || (permissions != null && permissions.has(player, "money2xp.admin")))) {
+                player.sendMessage(ChatColor.RED + "You do not have access to this command.");
+                return true;
+            }
+            if (l == 2) {
+                if (!modValue(args[0], args[1].toLowerCase(), player)) {
                     help = true;
                 }
-            } else if (commandLabel.equalsIgnoreCase("m2xset") || commandLabel.equalsIgnoreCase("m2xs")) {
-                if (!((permissions == null && player.isOp()) || (permissions != null && permissions.has(player, "money2xp.admin")))) {
-                    player.sendMessage(ChatColor.RED + "You do not have access to this command.");
+            } else {
+                help = true;
+            }
+        } else if (commandLabel.equalsIgnoreCase("m2xtrain") || commandLabel.equalsIgnoreCase("m2xt")) {
+            if (!abortIfNotPlayer(sender, isPlayer)) {
+                return true;
+            }
+            if (!((permissions == null && player.isOp()) || (permissions != null && permissions.has(player, "money2xp.admin")))) {
+                player.sendMessage(ChatColor.RED + "You do not have access to this command.");
+                return true;
+            }
+            if (l >= 1 && (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("r"))) {
+                reloadAreas(sender);
+                sender.sendMessage(ChatColor.GREEN + "Done.");
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("zones") || args[0].equalsIgnoreCase("z"))) {
+                String status = "";
+                if (l == 2) {
+                    trainingzones = args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("t");
+                } else {
+                    trainingzones = !trainingzones;
+                }
+                if (trainingzones) {
+                    status = "on";
+                } else {
+                    status = "off";
+                }
+                conf.setProperty("zones", trainingzones);
+                conf.save();
+                player.sendMessage(ChatColor.GREEN + "Training zones have been turned " + status);
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("create") || args[0].equalsIgnoreCase("c"))) {
+                AreaSelect area = as.get(player);
+                if (area == null) {
+                    player.sendMessage(ChatColor.RED + "No area selected.");
+                    return true;
+                } else if (area.b1 == null) {
+                    player.sendMessage(ChatColor.RED + "First node is missing");
+                    return true;
+                } else if (area.b2 == null) {
+                    player.sendMessage(ChatColor.RED + "Second node is missing");
                     return true;
                 }
                 if (l == 2) {
-                    if (!modValue(args[0], args[1], player)) {
-                        help = true;
+                    if (area.b1.getWorld().equals(area.b2.getWorld())) {
+                        TrainingArea ta = new TrainingArea(area, player, args[1]);
+                        areas.add(ta);
+                    } else {
+                        player.sendMessage(ChatColor.RED + "Nodes are in different worlds.");
                     }
                 } else {
-                    help = true;
+                    player.sendMessage(ChatColor.RED + "Requires a name.");
                 }
-            } else if (commandLabel.equalsIgnoreCase("m2xtrain") || commandLabel.equalsIgnoreCase("m2xt")) {
-                if (!((permissions == null && player.isOp()) || (permissions != null && permissions.has(player, "money2xp.admin")))) {
-                    player.sendMessage(ChatColor.RED + "You do not have access to this command.");
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("delarea") || args[0].equalsIgnoreCase("da"))) {
+                if (l == 2) {
+                    for (TrainingArea area : areas) {
+                        if (area.areaname.equalsIgnoreCase(args[1])) {
+                            areas.remove(area);
+                            if (selected.get((CommandSender)player) == area) {
+                                selected.put((CommandSender) player, null); 
+                            }
+                            conf.removeProperty("areas."+area.areaname);
+                            conf.save();
+                            break;
+                        }
+                    }
+                }
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("node") || args[0].equalsIgnoreCase("n"))) {
+                AreaSelect area = as.get(player);
+                if (area == null) {
+                    area = new AreaSelect();
+                    as.put(player, area);
+                }
+                if (l == 2) {
+                    int i = toInt(args[1]);
+                    if (i == 1) {
+                        area.b1 = player.getLocation().getBlock();
+                        player.sendMessage("Node 1 set");
+                    } else if (i == 2) {
+                        area.b2 = player.getLocation().getBlock();
+                        player.sendMessage("Node 2 set");
+                    } else {
+                        player.sendMessage("No such node.");
+                    }
+                }
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("s"))) {
+                if (l == 2) {
+                    for (TrainingArea area : areas) {
+                        if (area.areaname.equalsIgnoreCase(args[1])) {
+                            sender.sendMessage(ChatColor.GREEN+String.format("Selected %s", args[1]));
+                            selected.put(sender, area);
+                            return true;
+                        }
+                    }
+                    sender.sendMessage(ChatColor.RED+"No training area found.");
+                } else {
+                    sender.sendMessage(ChatColor.RED+"Requires area-name");
+                }
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("resize") || args[0].equalsIgnoreCase("rs"))) {
+                TrainingArea tarea = selected.get(sender);
+                if (tarea == null) {
+                    player.sendMessage(ChatColor.RED + "No training area selected!");
                     return true;
                 }
-                if (l >= 1 && (args[0].equalsIgnoreCase("reload") || args[0].equalsIgnoreCase("r"))) {
-                    reloadAreas(sender);
-                    sender.sendMessage(ChatColor.GREEN + "Done.");
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("zones") || args[0].equalsIgnoreCase("z"))) {
-                    String status = "";
-                    if (l == 2) {
-                        trainingzones = args[1].equalsIgnoreCase("true") || args[1].equalsIgnoreCase("t");
-                    } else {
-                        trainingzones = !trainingzones;
-                    }
-                    if (trainingzones) {
-                        status = "on";
-                    } else {
-                        status = "off";
-                    }
-                    conf.setProperty("zones", trainingzones);
-                    conf.save();
-                    player.sendMessage(ChatColor.GREEN + "Training zones have been turned " + status);
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("create") || args[0].equalsIgnoreCase("c"))) {
-                    AreaSelect area = as.get(player);
-                    if (area == null) {
-                        player.sendMessage(ChatColor.RED + "No area selected.");
-                        return true;
-                    } else if (area.b1 == null) {
-                        player.sendMessage(ChatColor.RED + "First node is missing");
-                        return true;
-                    } else if (area.b2 == null) {
-                        player.sendMessage(ChatColor.RED + "Second node is missing");
-                        return true;
-                    }
-                    if (l == 2) {
-                        if (area.b1.getWorld().equals(area.b2.getWorld())) {
-                            TrainingArea ta = new TrainingArea(area, player, args[1]);
-                            areas.add(ta);
-                        } else {
-                            player.sendMessage(ChatColor.RED + "Nodes are in different worlds.");
-                        }
-                    } else {
-                        player.sendMessage(ChatColor.RED + "Requires a name.");
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("delarea") || args[0].equalsIgnoreCase("da"))) {
-                    if (l == 2) {
-                        for (TrainingArea area : areas) {
-                            if (area.areaname.equalsIgnoreCase(args[1])) {
-                                areas.remove(area);
-                                if (selected.get((CommandSender)player) == area) {
-                                    selected.put((CommandSender) player, null); 
-                                }
-                                conf.removeProperty("areas."+area.areaname);
-                                conf.save();
-                                break;
-                            }
-                        }
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("node") || args[0].equalsIgnoreCase("n"))) {
-                    AreaSelect area = as.get(player);
-                    if (area == null) {
-                        area = new AreaSelect();
-                        as.put(player, area);
-                    }
-                    if (l == 2) {
-                        int i = toInt(args[1]);
-                        if (i == 1) {
-                            area.b1 = player.getLocation().getBlock();
-                            player.sendMessage("Node 1 set");
-                        } else if (i == 2) {
-                            area.b2 = player.getLocation().getBlock();
-                            player.sendMessage("Node 2 set");
-                        } else {
-                            player.sendMessage("No such node.");
-                        }
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("s"))) {
-                    if (l == 2) {
-                        for (TrainingArea area : areas) {
-                            if (area.areaname.equalsIgnoreCase(args[1])) {
-                                sender.sendMessage(ChatColor.GREEN+String.format("Selected %s", args[1]));
-                                selected.put(sender, area);
-                                return true;
-                            }
-                        }
-                        sender.sendMessage(ChatColor.RED+"No training area found.");
-                    } else {
-                        sender.sendMessage(ChatColor.RED+"Requires area-name");
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("resize") || args[0].equalsIgnoreCase("rs"))) {
-                    TrainingArea tarea = selected.get(sender);
-                    if (tarea == null) {
-                        player.sendMessage(ChatColor.RED + "No training area selected!");
-                        return true;
-                    }
-                    AreaSelect area = as.get(player);
-                    if (area == null) {
-                        player.sendMessage(ChatColor.RED + "No area selected.");
-                        return true;
-                    } else if (area.b1 == null) {
-                        player.sendMessage(ChatColor.RED + "First node is missing");
-                        return true;
-                    } else if (area.b2 == null) {
-                        player.sendMessage(ChatColor.RED + "Second node is missing");
-                        return true;
-                    }
-                    tarea.resize(area, player);
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("area") || args[0].equalsIgnoreCase("a"))) {
-                    TrainingArea area = selected.get(sender);
-                    if (area != null) {
-                        sender.sendMessage(ChatColor.GREEN + String.format("Area %s @ %d.%d.%d, %d.%d.%d in %s", 
-                                area.areaname, area.xf, area.yf, area.zf, area.xt, area.yt, area.zt, area.world.getName()));
-                        sender.sendMessage(ChatColor.GREEN + "Available skills:");
-                        for (Integer i : area.skills) {
-                            sender.sendMessage(ChatColor.GREEN + names[i]);
-                        }
-                    } else {
-                        sender.sendMessage(ChatColor.YELLOW+"No area selected");
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("ad"))) {
-                    TrainingArea area = selected.get(sender);
-                    if (area != null && l == 2) {
-                        area.modSkill(args[1], true, sender);
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("d"))) {
-                    TrainingArea area = selected.get(sender);
-                    if (area != null && l == 2) {
-                        area.modSkill(args[1], false, sender);
-                    }
-                } else if (l >= 1 && (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("l"))) {
-                    int page = 0;
-                    if (l == 2) {
-                        page = toInt(args[1]);
-                    }
-                    int i = page*10;
-                    boolean first = true;
-                    Iterator<TrainingArea> iter = areas.iterator();
-                    sender.sendMessage(ChatColor.GREEN + String.format(ChatColor.GREEN + "Showing %d to %d", 
-                            page*10, Math.min((page+1)*10, areas.size())));
-                    if (i == 0) {
-                        i = 10;
-                        first = false;
-                    }
-                    while (i > 0 && iter.hasNext()) {
-                        TrainingArea tmp = iter.next();
-                        i--;
-                        if (i <= 0 && first) {
-                            i = 10;
-                        }
-                        if (!first) {
-                            sender.sendMessage(ChatColor.YELLOW + String.format("%s @ %d.%d.%d to %d.%d.%d in %s", 
-                                    tmp.areaname, tmp.xf, tmp.yf, tmp.zf, tmp.xt, tmp.yt, tmp.zt, tmp.world.getName()));
-                        }
-                    }
-                    if ((page+1)*10 < areas.size()) {
-                        sender.sendMessage(ChatColor.GREEN + String.format("/m2xtrain l %d for the next page", page+1));
+                AreaSelect area = as.get(player);
+                if (area == null) {
+                    player.sendMessage(ChatColor.RED + "No area selected.");
+                    return true;
+                } else if (area.b1 == null) {
+                    player.sendMessage(ChatColor.RED + "First node is missing");
+                    return true;
+                } else if (area.b2 == null) {
+                    player.sendMessage(ChatColor.RED + "Second node is missing");
+                    return true;
+                }
+                tarea.resize(area, player);
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("area") || args[0].equalsIgnoreCase("a"))) {
+                TrainingArea area = selected.get(sender);
+                if (area != null) {
+                    sender.sendMessage(ChatColor.GREEN + String.format("Area %s @ %d.%d.%d, %d.%d.%d in %s", 
+                            area.areaname, area.xf, area.yf, area.zf, area.xt, area.yt, area.zt, area.world.getName()));
+                    sender.sendMessage(ChatColor.GREEN + "Available skills:");
+                    for (Integer i : area.skills) {
+                        sender.sendMessage(ChatColor.GREEN + names[i]);
                     }
                 } else {
-                    help = true;
+                    sender.sendMessage(ChatColor.YELLOW+"No area selected");
                 }
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("ad"))) {
+                TrainingArea area = selected.get(sender);
+                if (area != null && l == 2) {
+                    area.modSkill(args[1], true, sender);
+                }
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("del") || args[0].equalsIgnoreCase("d"))) {
+                TrainingArea area = selected.get(sender);
+                if (area != null && l == 2) {
+                    area.modSkill(args[1], false, sender);
+                }
+            } else if (l >= 1 && (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("l"))) {
+                int page = 0;
+                if (l == 2) {
+                    page = toInt(args[1]);
+                }
+                int i = page*10;
+                boolean first = true;
+                Iterator<TrainingArea> iter = areas.iterator();
+                sender.sendMessage(ChatColor.GREEN + String.format(ChatColor.GREEN + "Showing %d to %d", 
+                        page*10, Math.min((page+1)*10, areas.size())));
+                if (i == 0) {
+                    i = 10;
+                    first = false;
+                }
+                while (i > 0 && iter.hasNext()) {
+                    TrainingArea tmp = iter.next();
+                    i--;
+                    if (i <= 0 && first) {
+                        i = 10;
+                    }
+                    if (!first) {
+                        sender.sendMessage(ChatColor.YELLOW + String.format("%s @ %d.%d.%d to %d.%d.%d in %s", 
+                                tmp.areaname, tmp.xf, tmp.yf, tmp.zf, tmp.xt, tmp.yt, tmp.zt, tmp.world.getName()));
+                    }
+                }
+                if ((page+1)*10 < areas.size()) {
+                    sender.sendMessage(ChatColor.GREEN + String.format("/m2xtrain l %d for the next page", page+1));
+                }
+            } else {
+                help = true;
             }
-        } else {
-            sender.sendMessage("Only in-game players have access to this command");
         }
         if (help) {
             player.sendMessage(ChatColor.GREEN + "Money2XP by TZer0 (TZer0.jan@gmail.com)");
@@ -366,7 +373,8 @@ public class Money2XP extends JavaPlugin {
      */
 
     public void xpMod(String skill, String xpstring, Player player, boolean test, boolean override) {
-        Plugin BOS = getServer().getPluginManager().getPlugin("BOSEconomy");
+        BOSEconomy BOS = (BOSEconomy) getServer().getPluginManager().getPlugin("BOSEconomy");
+        Essentials ess = (Essentials) getServer().getPluginManager().getPlugin("Essentials");
         skill = skill.toLowerCase();
         if (checkInt(xpstring)) {
             if (!skillnames.contains(skill)) {
@@ -395,51 +403,79 @@ public class Money2XP extends JavaPlugin {
                 }
             }
             int xp = Integer.parseInt(xpstring);
-            int xpcost = conf.getInt(skill.toLowerCase(), conf.getInt("default", 100));
-            if (xpcost <= 0) {
+            double xpcost = conf.getDouble(skill.toLowerCase(), conf.getDouble("default", 100));
+            if (Math.abs(xpcost+1) < 0.0001) {
                 player.sendMessage(String.format(ChatColor.RED + "Training %s using money has been disabled.", skill));
                 return;
-            } else if (Integer.MAX_VALUE/xpcost < xp || xp <= 0) {
+            } else if (xp <= 0 || xpcost <= 0) {
                 // Prevents overflows and underflows and adds a disapproving comment.
                 player.sendMessage(ChatColor.RED+String.format("Nice try."));
                 return;
             }
-            int bal = 0;
+            double bal = 0;
             if (iConomy != null) {
                 Holdings acc = iConomy.getAccount(player.getName()).getHoldings();
-                bal = (int)acc.balance();
+                bal = acc.balance();
             } else if (BOS != null) {
                 bal = ((BOSEconomy) BOS).getPlayerMoney(player.getName());
+            } else if (ess != null) {
+                bal = ess.getUser(player).getMoney();
             } else {
                 player.sendMessage(ChatColor.RED + "No economy system disabled, cancelled.");
                 return;
             }
-            
+
             if (!test && bal < xp*xpcost) {
-                player.sendMessage(ChatColor.RED+String.format("You cannot afford %d %s xp (@%d) since ", 
+                player.sendMessage(ChatColor.RED+String.format("You cannot afford %d %s xp (@%.2f) since ", 
                         xp, skill, xpcost));
-                player.sendMessage(ChatColor.RED+String.format("your current balance is %d, and this costs %d!", 
+                player.sendMessage(ChatColor.RED+String.format("your current balance is %.2f, and this costs %.2f!", 
                         bal, xpcost*xp));
             } else if (test) {
-                player.sendMessage(ChatColor.YELLOW+String.format("%d %s-xp (@%d) would cost you %d,", 
+                player.sendMessage(ChatColor.YELLOW+String.format("%d %s-xp (@%.2f) would cost you %.2f,", 
                         xp, skill, xpcost, xp*xpcost));
-                player.sendMessage(ChatColor.YELLOW+String.format("leaving you with %d money.",
-                        ((int) bal)-xp*xpcost));
+                player.sendMessage(ChatColor.YELLOW+String.format("leaving you with %.2f money.",
+                        bal-xp*xpcost));
             } else {
                 if (iConomy != null) {
-                   iConomy.getAccount(player.getName()).getHoldings().subtract(xp*xpcost);
-                } else {
-                    ((BOSEconomy) BOS).addPlayerMoney(player.getName(), -xp*xpcost, true);
+                    iConomy.getAccount(player.getName()).getHoldings().subtract(xp*xpcost);
+                } else if (BOS != null) {
+                    if (xpcost < 1) {
+                        player.sendMessage("You can't have xpcost < 1 when using BOSEconomy");
+                        return;
+                    }
+                    BOS.addPlayerMoney(player.getName(), (int) (-xp*xpcost), true);
+                } else if (ess != null) {
+                    ess.getUser(player).setMoney(bal-xp*xpcost);
                 }
                 bal -= xp*xpcost;
-                player.sendMessage(ChatColor.GREEN+String.format("You received %d %s-xp(@%d) for %d money!", 
+                player.sendMessage(ChatColor.GREEN+String.format("You received %d %s-xp(@%.2f) for %.2f money!", 
                         xp, skill, xpcost, xp*xpcost));
-                player.sendMessage(ChatColor.GREEN+String.format("You have %d money left", 
-                        (int) bal));
+                player.sendMessage(ChatColor.GREEN+String.format("You have %.2f money left", 
+                        (double) bal));
                 mcmmo.addXp(player, skill, xp);
             }
         } else {
-            player.sendMessage(ChatColor.RED + "Value must be a number.");
+            if (xpstring.substring(0,1).equalsIgnoreCase("i")) {
+                int item = conf.getInt(skill+"item", conf.getInt("defaultitem", -1));
+                int xpPerItem = conf.getInt(skill+"xpi", conf.getInt("defaultxpi", -1));
+                if (xpPerItem <= 0 || item <= 0) {
+                    player.sendMessage(ChatColor.RED + String.format("%s can't be trained using items.", skill));
+                    return;
+                } else {
+                    int xp = Integer.parseInt(xpstring.substring(1));
+                    if (test) {
+                        player.sendMessage(ChatColor.YELLOW + String.format("You would get %d %s-xp for %d %d (@%d/item)", xp*xpPerItem, skill, xp, item, xpPerItem));
+                    } else if (player.getInventory().contains(item, xp)) {
+                        player.getInventory().remove(new ItemStack(item, xp));
+                        mcmmo.addXp(player, skill, xp*xpPerItem);
+                        player.sendMessage(ChatColor.GREEN + String.format("Got %d %s-xp for %d (@%d/item)", xp*xpPerItem, skill, xp, item, xpPerItem));
+                    } else {
+                        player.sendMessage(ChatColor.RED + "You can't afford this.");
+                    }
+                }
+            } else {   
+                player.sendMessage(ChatColor.RED + "Value must be a number.");
+            }
         }
     }
     /**
@@ -451,30 +487,58 @@ public class Money2XP extends JavaPlugin {
      * @return true, Whether it worked or not.
      */
     public boolean modValue(String key, String value, CommandSender sender) {
-        if (checkInt(value)) {
-            if (!(key.equals("default") || skillnames.contains(key))) {
-                sender.sendMessage(ChatColor.RED + "This skill does not exist.");
-                return true;
+        if (!(key.equals("default") || skillnames.contains(key))) {
+            sender.sendMessage(ChatColor.RED + "This skill does not exist.");
+            return true;
+        }
+        if (value.substring(0,1).equalsIgnoreCase("i")) {
+            String cost[] = value.substring(1).split(":");
+            int item = toInt(cost[0]);
+            int xpPerItem = -1;
+            if (cost.length == 2) {
+                xpPerItem = toInt(cost[1]);
             }
-            int i = Integer.parseInt(value);
-            if (i == 0) {
-                getConfiguration().removeProperty(key);
-                value = String.format("default(%d)",
-                        getConfiguration().getInt("default", 100));
+            if (item == 0) {
+                conf.removeProperty(key+"item");
+                conf.removeProperty(key+"xpi");
+                conf.save();
             } else {
-                if (i == -1) {
+                conf.setProperty(key+"item", item);
+                conf.setProperty(key+"xpi", xpPerItem);
+                conf.save();
+            }
+            if (xpPerItem == -1) {
+                sender.sendMessage(ChatColor.RED + String.format("%s skill can't be trained using items", key));
+            } else if (item == 0) {
+                sender.sendMessage(ChatColor.GREEN + String.format("%s xp per item and item has been set to default: %d (@%d/item)", 
+                        key, conf.getInt("defaultitem", -1), conf.getInt("defaultxpi", -1)));
+            } else {
+                sender.sendMessage(ChatColor.GREEN + String.format("%d now gives %d %s-xp", item, xpPerItem, key));
+            }
+        } else {
+
+            double i = 0;
+            try {
+                i = Double.parseDouble(value);
+            } catch (Exception e) {
+                return false;
+            }
+            if (Math.abs(i) < 0.0001) {
+                conf.removeProperty(key);
+                value = String.format("default(%.2f)",
+                        conf.getDouble("default", 100));
+            } else {
+                if (Math.abs(i + 1) < 0.0001) {
                     value = "unavailable";
                 }
-                getConfiguration().setProperty(key.toLowerCase(), i);
+                conf.setProperty(key.toLowerCase(), i);
             }
-            getConfiguration().save();
+            conf.save();
             sender.sendMessage(ChatColor.GREEN
                     + String.format("Price per xp for %s has been set to %s",
                             key, value));
-            return true;
-        } else {
-            return false;
         }
+        return true;
     }
 
     /**
@@ -499,16 +563,25 @@ public class Money2XP extends JavaPlugin {
      * @param player
      */
     public void showSkills(CommandSender sender) {
-        int def = getConfiguration().getInt("default", 100);
-        int value = 0;
+        double def = conf.getDouble("default", 100);
+        int item, xpPerItem;
+        double value = 0;
         sender.sendMessage(ChatColor.WHITE + "Name - Cost");
         for (String name : skillnames) {
-            value = getConfiguration().getInt(name, def);
-            if (value > 0) {
-                sender.sendMessage(ChatColor.GREEN + String.format("%s - %d", name, value));
+            value = conf.getDouble(name, def);
+            String out1 = "";
+            String out2 = "";
+            if (value > 0.0001) {
+                out1 = ChatColor.YELLOW + String.format("%.2f", value);
             } else {
-                sender.sendMessage(ChatColor.RED + String.format("%s is not available", name));
+                out1 = ChatColor.RED + String.format("is not available for money", name);
             }
+            item = conf.getInt(name + "item", conf.getInt("defualitem", -1));
+            xpPerItem = conf.getInt(name + "xpi", conf.getInt("defualxpi", -1));
+            if (item != -1 && xpPerItem != -1) {
+                out2 = ChatColor.YELLOW + String.format(", item %d (@%d/item)", item, xpPerItem);
+            }
+            sender.sendMessage(ChatColor.GREEN + String.format("%s - %s%s", name, out1, out2));
         }
     }
     public int toInt(String in) {
@@ -533,6 +606,25 @@ public class Money2XP extends JavaPlugin {
         }
         return true;
     }
+
+    public boolean checkDouble(String in) {
+        char chars[] = in.toCharArray();
+        boolean dotOnce = false;
+        for (int i = 0; i < chars.length; i++) {
+            if ((chars[i] == '.')) {
+                if (!dotOnce) {
+                    dotOnce = true;
+                } else {
+                    return false;
+                }
+            }
+            if (!(Character.isDigit(chars[i]) || (i == 0 && chars[i] == '-'))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Translate the string to an int
      * @param skill
@@ -588,7 +680,7 @@ public class Money2XP extends JavaPlugin {
                             sender.sendMessage(ChatColor.RED + String.format("Skill already exists. in %s!", areaname));
                         }
                     }
-                    
+
                 } else {
                     if (skills.contains(i)) {
                         skills.remove(i);
@@ -643,7 +735,14 @@ public class Money2XP extends JavaPlugin {
             }
         }
     }
-    
+
+    public boolean abortIfNotPlayer(CommandSender sd, boolean status) {
+        if (!status) {
+            sd.sendMessage(ChatColor.RED + "Only in-game players may use this command");
+        }
+        return status;
+    }
+
     class Server extends ServerListener {
         private Money2XP plugin;
 
