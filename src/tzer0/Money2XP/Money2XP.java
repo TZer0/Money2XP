@@ -18,6 +18,7 @@ import org.bukkit.event.Event.Priority;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.ServerListener;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -341,12 +342,13 @@ public class Money2XP extends JavaPlugin {
             player.sendMessage(ChatColor.GREEN + "Money2XP by TZer0 (TZer0.jan@gmail.com)");
             player.sendMessage(ChatColor.YELLOW + "Commands (paranthesis denote aliases, braces optional args):");
             player.sendMessage(ChatColor.YELLOW + "/m2x (l)ist - list skills and prices");
-            player.sendMessage(ChatColor.YELLOW + "/m2x [skillname] [amount]");
-            player.sendMessage(ChatColor.YELLOW + "/m2x (c)heck [skillname] [amount]");
+            player.sendMessage(ChatColor.YELLOW + "/m2x [skillname] [amount]/i[numberOfItems]");
+            player.sendMessage(ChatColor.YELLOW + "/m2x (c)heck [skillname] [amount]/i[numberOfItems]");
             if ((permissions == null && player.isOp()) || permissions.has(player, "money2xp.admin")) {
                 player.sendMessage(ChatColor.YELLOW + "Admin commands:");
                 player.sendMessage(ChatColor.YELLOW + "/m2xset [skillname] [price_per_xp] - sets xp-cost for a skill");
-                player.sendMessage(ChatColor.YELLOW + "/m2xtrain (z)ones {t/true/f/false} - turn training zones on/off");
+                player.sendMessage(ChatColor.YELLOW + "/m2xset [skillname] " +ChatColor.RED + "i"+ChatColor.YELLOW+"[ID]:[xpPerItem] - allows using items");
+                player.sendMessage(ChatColor.YELLOW + "/m2xtrain (z)ones {t/true/f/false} - configure trainingzones");
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (n)ode [1/2] - sets nodes for area-creation");
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (c)reate [name] - creates a zone using nodes.");
                 player.sendMessage(ChatColor.YELLOW + "/m2xtrain (l)ist {#} - shows training zones");
@@ -462,13 +464,18 @@ public class Money2XP extends JavaPlugin {
                     player.sendMessage(ChatColor.RED + String.format("%s can't be trained using items.", skill));
                     return;
                 } else {
-                    int xp = Integer.parseInt(xpstring.substring(1));
+                    int xp = toInt(xpstring.substring(1));
+                    if (xp <= 0) {
+                        player.sendMessage(ChatColor.RED + "Number of items must be greater than zero.");
+                        return;
+                    }
                     if (test) {
-                        player.sendMessage(ChatColor.YELLOW + String.format("You would get %d %s-xp for %d %d (@%d/item)", xp*xpPerItem, skill, xp, item, xpPerItem));
+                        player.sendMessage(ChatColor.YELLOW + String.format("You would get %d %s-xp for %d %d (@%d/item)", xp*xpPerItem, skill, item, xpPerItem));
                     } else if (player.getInventory().contains(item, xp)) {
-                        player.getInventory().remove(new ItemStack(item, xp));
+                        Inventory plInv = player.getInventory();
+                        plInv.removeItem(new ItemStack(item, xp));
                         mcmmo.addXp(player, skill, xp*xpPerItem);
-                        player.sendMessage(ChatColor.GREEN + String.format("Got %d %s-xp for %d (@%d/item)", xp*xpPerItem, skill, xp, item, xpPerItem));
+                        player.sendMessage(ChatColor.GREEN + String.format("Got %d %s-xp for %d (@%d/item)", xp*xpPerItem, skill, item, xpPerItem));
                     } else {
                         player.sendMessage(ChatColor.RED + "You can't afford this.");
                     }
@@ -576,8 +583,8 @@ public class Money2XP extends JavaPlugin {
             } else {
                 out1 = ChatColor.RED + String.format("is not available for money", name);
             }
-            item = conf.getInt(name + "item", conf.getInt("defualitem", -1));
-            xpPerItem = conf.getInt(name + "xpi", conf.getInt("defualxpi", -1));
+            item = conf.getInt(name + "item", conf.getInt("defaultitem", -1));
+            xpPerItem = conf.getInt(name + "xpi", conf.getInt("defaultxpi", -1));
             if (item != -1 && xpPerItem != -1) {
                 out2 = ChatColor.YELLOW + String.format(", item %d (@%d/item)", item, xpPerItem);
             }
