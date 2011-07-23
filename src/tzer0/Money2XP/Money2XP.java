@@ -28,7 +28,8 @@ import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
 
 import com.earth2me.essentials.Essentials;
-import com.gmail.nossr50.mcMMO;
+import com.gmail.nossr50.Users;
+import com.gmail.nossr50.skills.Skills;
 import com.iConomy.system.Holdings;
 import com.iConomy.iConomy;
 import com.nijiko.permissions.PermissionHandler;
@@ -53,7 +54,6 @@ public class Money2XP extends JavaPlugin {
     HashMap<CommandSender, TrainingArea> selected;
     Configuration conf;
     public iConomy iConomy = null;
-    public mcMMO mcmmo;
     public boolean trainingzones;
     @SuppressWarnings("unused")
     private final String name = "Money2XP";
@@ -89,7 +89,6 @@ public class Money2XP extends JavaPlugin {
         tmp.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Priority.Monitor, this);
         System.out.println(pdfFile.getName() + " version "
                 + pdfFile.getVersion() + " is enabled!");
-        mcmmo = (mcMMO) tmp.getPlugin("mcMMO");
         reloadAreas(null);
     }
     /**
@@ -138,6 +137,9 @@ public class Money2XP extends JavaPlugin {
                 return true;
             }
             isPlayer = true;
+        } else {
+            sender.sendMessage(ChatColor.RED + "Only in-game players have access to these commands. (will be changed!)");
+            return true;
         }
         int l = args.length;
         boolean help = false;
@@ -454,7 +456,7 @@ public class Money2XP extends JavaPlugin {
                         xp, skill, xpcost, xp*xpcost));
                 player.sendMessage(ChatColor.GREEN+String.format("You have %.2f money left", 
                         (double) bal));
-                mcmmo.addXp(player, skill, xp);
+                Users.getProfile(player).addXP(Skills.getSkillType(skill), xp);
             }
         } else {
             if (xpstring.substring(0,1).equalsIgnoreCase("i")) {
@@ -474,7 +476,7 @@ public class Money2XP extends JavaPlugin {
                     } else if (player.getInventory().contains(item, xp)) {
                         Inventory plInv = player.getInventory();
                         plInv.removeItem(new ItemStack(item, xp));
-                        mcmmo.addXp(player, skill, xp*xpPerItem);
+                        Users.getProfile(player).addXP(Skills.getSkillType(skill), xp);
                         player.sendMessage(ChatColor.GREEN + String.format("Got %d %s-xp for %d (@%d/item)", xp*xpPerItem, skill, item, xpPerItem));
                     } else {
                         player.sendMessage(ChatColor.RED + "You can't afford this.");
