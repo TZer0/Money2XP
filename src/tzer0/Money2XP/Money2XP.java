@@ -29,6 +29,8 @@ import org.bukkit.util.config.ConfigurationNode;
 
 import com.earth2me.essentials.Essentials;
 import com.gmail.nossr50.mcMMO;
+import com.gmail.nossr50.Users;
+import com.gmail.nossr50.skills.Skills;
 import com.iConomy.system.Holdings;
 import com.iConomy.iConomy;
 import com.nijiko.permissions.PermissionHandler;
@@ -454,7 +456,7 @@ public class Money2XP extends JavaPlugin {
                         xp, skill, xpcost, xp*xpcost));
                 player.sendMessage(ChatColor.GREEN+String.format("You have %.2f money left", 
                         (double) bal));
-                mcmmo.addXp(player, skill, xp);
+                Users.getProfile(player).addXP(Skills.getSkillType(skill), xp);
             }
         } else {
             if (xpstring.substring(0,1).equalsIgnoreCase("i")) {
@@ -474,7 +476,7 @@ public class Money2XP extends JavaPlugin {
                     } else if (player.getInventory().contains(item, xp)) {
                         Inventory plInv = player.getInventory();
                         plInv.removeItem(new ItemStack(item, xp));
-                        mcmmo.addXp(player, skill, xp*xpPerItem);
+                        Users.getProfile(player).addXP(Skills.getSkillType(skill), xp*xpPerItem);
                         player.sendMessage(ChatColor.GREEN + String.format("Got %d %s-xp for %d (@%d/item)", xp*xpPerItem, skill, item, xpPerItem));
                     } else {
                         player.sendMessage(ChatColor.RED + "You can't afford this.");
