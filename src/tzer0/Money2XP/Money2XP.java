@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -43,7 +44,8 @@ import cosine.boseconomy.BOSEconomy;
  * @author TZer0
  */
 public class Money2XP extends JavaPlugin {
-    private final Money2XPPlayerListener listener = new Money2XPPlayerListener();
+    private final Money2XPPlayerListener playerListener = new Money2XPPlayerListener(this);
+    private final Money2XPBlockListener blockListener = new Money2XPBlockListener(this);
     private final Server serverListener = new Server(this);
     String []names = {"Acrobatics", "Archery", "Axes", "Excavation", "Herbalism", "Mining", "Repair", "Swords", "Taming", "Unarmed", "Woodcutting"};
     PluginDescriptionFile pdfFile;
@@ -70,6 +72,7 @@ public class Money2XP extends JavaPlugin {
      * @see org.bukkit.plugin.Plugin#onEnable()
      */
     public void onEnable() {
+        playerListener.startTask();
         selected = new HashMap<CommandSender, TrainingArea>();
         as = new HashMap<Player, AreaSelect>();
         pdfFile = this.getDescription();
@@ -80,11 +83,12 @@ public class Money2XP extends JavaPlugin {
         }
         setupPermissions();
         conf = getConfiguration();
-        listener.setPointers(conf, this, permissions);
         trainingzones = conf.getBoolean("zones", false);
         PluginManager tmp = getServer().getPluginManager();
-        tmp.registerEvent(Event.Type.PLAYER_JOIN, listener, Priority.Normal, this);
-        tmp.registerEvent(Event.Type.PLAYER_QUIT, listener, Priority.Normal, this);
+        tmp.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Normal, this);
+        tmp.registerEvent(Event.Type.PLAYER_QUIT, playerListener, Priority.Normal, this);
+        tmp.registerEvent(Event.Type.PLAYER_INTERACT, playerListener, Priority.Normal, this);
+        tmp.registerEvent(Event.Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
         tmp.registerEvent(Event.Type.PLUGIN_ENABLE, serverListener, Priority.Monitor, this);
         tmp.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener, Priority.Monitor, this);
         System.out.println(pdfFile.getName() + " version "
@@ -389,7 +393,7 @@ public class Money2XP extends JavaPlugin {
                 player.sendMessage(ChatColor.RED+"You are not allowed to override training zones!");
             }
             if (!test && !override && trainingzones) {
-                TrainingArea area = listener.activity.get(player);
+                TrainingArea area = playerListener.activity.get(player);
                 boolean failed = false;
                 if (area == null) {
                     player.sendMessage(ChatColor.RED+"You are not in a training zone!");
@@ -737,7 +741,8 @@ public class Money2XP extends JavaPlugin {
             if (!loc.getWorld().equals(world)) {
                 return false;
             }
-            if (xf < loc.getX() && loc.getX() < xt && yf < loc.getY() && loc.getY() < yt && zf < loc.getZ() && loc.getZ() < zt) {
+            if (xf < loc.getX() && loc.getX() < xt && yf < loc.getY() && loc.getY() < yt 
+                    && zf < loc.getZ() && loc.getZ() < zt) {
                 return true;
             } else {
                 return false;
@@ -752,6 +757,10 @@ public class Money2XP extends JavaPlugin {
         return status;
     }
 
+    public double getCost(String skill, int value) {
+        return conf.getDouble(skill.toLowerCase(), conf.getDouble("default", 100)) * value;
+    }
+    
     class Server extends ServerListener {
         private Money2XP plugin;
 
@@ -778,5 +787,34 @@ public class Money2XP extends JavaPlugin {
                 }
             }
         }
+    }
+    
+    public boolean updateAndCheckSign(Sign sign, boolean created, Player pl) {
+        double cost = 0;
+        try { 
+            cost = getCost(sign.getLine(1), Integer.parseInt(sign.getLine(2)));
+        } catch (NumberFormatException e) {
+            pl.sendMessage(ChatColor.RED + "Invalid format!");
+            for (int i = 0; i < 4; i++) {
+                sign.setLine(i, ChatColor.RED + "error");
+            }
+            sign.update(true);
+            return false;
+        }
+        String oldcost = "";
+        try {
+            oldcost = sign.getLine(3).split(" ")[1];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            
+        }
+        if (!(String.format("%.2f", cost).equalsIgnoreCase(oldcost))) {
+            sign.setLine(3, String.format("Cost: %.2f", cost));
+            sign.update(true);
+            if (!created) {
+                pl.sendMessage(ChatColor.RED + "Cost has changed, check sign!");
+            }
+            return false;
+        }
+        return true;
     }
 }
