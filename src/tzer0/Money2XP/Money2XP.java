@@ -159,11 +159,11 @@ public class Money2XP extends JavaPlugin {
                 if (!abortIfNotPlayer(sender, isPlayer)) {
                     return true;
                 }
-                xpMod(args[1], args[2], player, true, false);
+                xpMod(args[1], args[2], player, true, false, false);
             } else if (l == 2) {
-                xpMod(args[0], args[1], player, false, false);
+                xpMod(args[0], args[1], player, false, false, false);
             } else if (l == 3) {
-                xpMod(args[0], args[1], player, false, args[2].equalsIgnoreCase("o"));
+                xpMod(args[0], args[1], player, false, args[2].equalsIgnoreCase("o"), false);
             } else {
                 help = true;
             }
@@ -380,7 +380,7 @@ public class Money2XP extends JavaPlugin {
      * @param test If this is a test or not.
      */
 
-    public void xpMod(String skill, String xpstring, Player player, boolean test, boolean override) {
+    public void xpMod(String skill, String xpstring, Player player, boolean test, boolean override, boolean sign) {
         BOSEconomy BOS = (BOSEconomy) getServer().getPluginManager().getPlugin("BOSEconomy");
         Essentials ess = (Essentials) getServer().getPluginManager().getPlugin("Essentials");
         skill = skill.toLowerCase();
@@ -389,7 +389,7 @@ public class Money2XP extends JavaPlugin {
                 player.sendMessage(ChatColor.RED+"This skill does not exist!");
                 return;
             }
-            if (override && !((permissions == null && player.isOp()) || (permissions != null && permissions.has(player, "money2xp.ignorezones")))) {
+            if (!sign && override && !((permissions == null && player.isOp()) || (permissions != null && permissions.has(player, "money2xp.ignorezones")))) {
                 player.sendMessage(ChatColor.RED+"You are not allowed to override training zones!");
             }
             if (!test && !override && trainingzones) {

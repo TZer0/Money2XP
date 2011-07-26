@@ -99,7 +99,7 @@ public class Money2XPPlayerListener extends PlayerListener  {
             String lines[] = sign.getLines();
             if (lines[0].equalsIgnoreCase(ChatColor.DARK_GREEN + "[m2x]")) {
                 if (plugin.updateAndCheckSign(sign, false, pl)) {
-                    plugin.xpMod(lines[1], lines[2], pl, false, true);
+                    plugin.xpMod(lines[1], lines[2], pl, false, true, true);
                 }
             }
         }
