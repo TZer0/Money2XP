@@ -23,7 +23,8 @@ public class Money2XPBlockListener extends BlockListener {
         String line = event.getLine(0);
         if (line.equalsIgnoreCase("[m2x]")) {
             event.setLine(0, ChatColor.DARK_GREEN + "[M2X]");
-            plugin.updateAndCheckSign((Sign) event.getBlock().getState(), true, pl);
+            changed = true;
+            //plugin.updateAndCheckSign((Sign) event.getBlock().getState(), true, pl);
         }
         
         if (changed) {

@@ -91,15 +91,16 @@ public class Money2XPPlayerListener extends PlayerListener  {
             return;
         }
         Player pl = event.getPlayer();
-        if (plugin.permissions.has(pl, "money2xp.player")) {
-            
+        if ((plugin.permissions != null && !plugin.permissions.has(pl, "money2xp.player"))) {
+            pl.sendMessage(ChatColor.RED + "You do not have permissions to do this.");
+            return;
         }
         if (event.getClickedBlock().getType() == Material.WALL_SIGN || event.getClickedBlock().getType() == Material.SIGN_POST) {
             Sign sign = (Sign) event.getClickedBlock().getState();
             String lines[] = sign.getLines();
             if (lines[0].equalsIgnoreCase(ChatColor.DARK_GREEN + "[m2x]")) {
                 if (plugin.updateAndCheckSign(sign, false, pl)) {
-                    plugin.xpMod(lines[1], lines[2], pl, false, true, true);
+                   plugin.xpMod(lines[1], lines[2], pl, false, true, true);
                 }
             }
         }
