@@ -1,0 +1,12 @@
+Required during compilation:
+* mcmmo 1.0.47+
+* Permissions 3.0+
+* iConomy 5+
+* Essentials
+* Bukkit
+* BOSEconomy
+
+Required to run:
+mcmmo
+One of the following: iConomy, BOSEconomy or Essentials
+Supported: Permissions
