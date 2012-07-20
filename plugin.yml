@@ -18,4 +18,6 @@ commands:
     m2xs:
         description: Administrates money/xp-settings.
         usage: /m2xs
-        
+    xp:
+        description: Opens spout-window if available!
+        usage: /xp

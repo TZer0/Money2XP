@@ -27,6 +27,12 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
 import org.bukkit.util.config.ConfigurationNode;
+import org.getspout.spoutapi.SpoutManager;
+import org.getspout.spoutapi.gui.GenericLabel;
+import org.getspout.spoutapi.gui.GenericPopup;
+import org.getspout.spoutapi.gui.GenericTextField;
+import org.getspout.spoutapi.gui.InGameHUD;
+import org.getspout.spoutapi.player.SpoutPlayer;
 
 import com.earth2me.essentials.Essentials;
 import com.gmail.nossr50.Users;
@@ -64,7 +70,10 @@ public class Money2XP extends JavaPlugin {
     public boolean trainingzones;
     @SuppressWarnings("unused")
     private final String name = "Money2XP";
-
+    Money2XPSpoutCraftListener scl;
+    Money2XPButtonListener sbl;
+    
+    
     /*
      * (non-Javadoc)
      * 
@@ -93,6 +102,8 @@ public class Money2XP extends JavaPlugin {
         setupPermissions();
         conf = getConfiguration();
         trainingzones = conf.getBoolean("zones", false);
+        scl = new Money2XPSpoutCraftListener(this);
+        sbl = new Money2XPButtonListener(this);
         PluginManager tmp = getServer().getPluginManager();
         tmp.registerEvent(Event.Type.PLAYER_JOIN, playerListener,
                 Priority.Normal, this);
@@ -105,6 +116,10 @@ public class Money2XP extends JavaPlugin {
         tmp.registerEvent(Event.Type.PLUGIN_ENABLE, serverListener,
                 Priority.Monitor, this);
         tmp.registerEvent(Event.Type.PLUGIN_DISABLE, serverListener,
+                Priority.Monitor, this);
+        tmp.registerEvent(Event.Type.CUSTOM_EVENT, scl,
+                Priority.Monitor, this);
+        tmp.registerEvent(Event.Type.CUSTOM_EVENT, sbl,
                 Priority.Monitor, this);
         System.out.println(pdfFile.getName() + " version "
                 + pdfFile.getVersion() + " is enabled!");
@@ -166,7 +181,20 @@ public class Money2XP extends JavaPlugin {
         }
         int l = args.length;
         boolean help = false;
-        if (commandLabel.equalsIgnoreCase("m2x")) {
+        if (commandLabel.equalsIgnoreCase("xp")) {
+            if (player != null) {
+                if (!(permissions == null || (permissions != null && permissions
+                        .has(player, "money2xp.user")))) {
+                    player.sendMessage(ChatColor.RED
+                            + "You do not have access to this command.");
+                    return true;
+                }
+            } else {
+                sender.sendMessage(ChatColor.RED + "Only in-game players have access to this command.");
+                return true;
+            }
+            scl.openXpWindow(player);
+        } else if (commandLabel.equalsIgnoreCase("m2x")) {
             if (player != null) {
                 if (!(permissions == null || (permissions != null && permissions
                         .has(player, "money2xp.user")))) {

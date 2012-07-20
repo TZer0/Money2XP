@@ -96,7 +96,7 @@ public class Money2XPPlayerListener extends PlayerListener  {
             Sign sign = (Sign) event.getClickedBlock().getState();
             String lines[] = sign.getLines();
             if (lines[0].equalsIgnoreCase(ChatColor.DARK_GREEN + "[m2x]")) {
-                if ((plugin.permissions != null && !plugin.permissions.has(pl, "money2xp.player"))) {
+                if ((plugin.permissions != null && !plugin.permissions.has(pl, "money2xp.user"))) {
                     pl.sendMessage(ChatColor.RED + "You do not have permissions to do this.");
                     return;
                 }
